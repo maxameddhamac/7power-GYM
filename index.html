@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7Power Gym Center - Management & Subscription System</title>
+    <meta name="description" content="Manage subscriptions, gym attendance traffic, and purchase supplements via the 7Power offline-to-online USSD payment checkout.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="light-theme">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <svg class="brand-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.5 9h-1.39A3 3 0 0 0 15 7H9a3 3 0 0 0-3.11 2H4.5a1.5 1.5 0 0 0 0 3h1.39A3 3 0 0 0 9 14h6a3 3 0 0 0 3.11-2h1.39a1.5 1.5 0 0 0 0-3zM8 12a1 1 0 1 1 1-1 1 1 0 0 1-1 1zm8 0a1 1 0 1 1 1-1 1 1 0 0 1-1 1zM2 9.5A1.5 1.5 0 0 1 3.5 8h.5v5h-.5A1.5 1.5 0 0 1 2 11.5v-2zm18 0a1.5 1.5 0 0 1 1.5-1.5h.5v5h-.5a1.5 1.5 0 0 1-1.5-1.5v-2z"/>
+                </svg>
+                <div class="brand-text-wrapper">
+                    <span class="brand-title">7Power</span>
+                    <span class="brand-subtitle">Gym</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn active" id="nav-dashboard-btn" onclick="switchView('dashboard')">
+                    <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
+                    </svg>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-btn" id="nav-store-btn" onclick="switchView('store')">
+                    <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                    <span>Convenience Store</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile-snippet" onclick="toggleAdminDrawer()">
+                    <div class="avatar-wrapper">
+                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&h=80" alt="Admin Avatar" class="user-avatar">
+                        <span class="online-indicator"></span>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">Admin User</span>
+                        <span class="user-role">Elite Tier</span>
+                    </div>
+                </div>
+
+                <a href="#" class="sidebar-link" onclick="triggerToast('Settings panel updated successfully.', 'info')">
+                    <svg class="link-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>Settings</span>
+                </a>
+                <a href="#" class="sidebar-link" onclick="resetAppSimulation()">
+                    <svg class="link-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span>Logout (Reset)</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-container">
+            <!-- Header Banner -->
+            <header class="main-header">
+                <div class="header-left">
+                    <h1 id="view-title">Dashboard</h1>
+                </div>
+
+                <!-- Global Dynamic Subscription Timer -->
+                <div class="timer-card">
+                    <div class="timer-badge">
+                        <span class="timer-badge-dot"></span>
+                        <span class="timer-badge-text">7POWER GYM SEASON RESET COUNTDOWN</span>
+                    </div>
+                    <div class="countdown-display" id="sub-countdown">
+                        <div class="countdown-block">
+                            <span class="countdown-number" id="countdown-days">08</span>
+                            <span class="countdown-label">DAYS</span>
+                        </div>
+                        <span class="countdown-divider">:</span>
+                        <div class="countdown-block">
+                            <span class="countdown-number" id="countdown-hours">14</span>
+                            <span class="countdown-label">HRS</span>
+                        </div>
+                        <span class="countdown-divider">:</span>
+                        <div class="countdown-block">
+                            <span class="countdown-number" id="countdown-mins">22</span>
+                            <span class="countdown-label">MIN</span>
+                        </div>
+                        <span class="countdown-divider">:</span>
+                        <div class="countdown-block">
+                            <span class="countdown-number" id="countdown-secs">59</span>
+                            <span class="countdown-label">SEC</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="header-actions">
+                    <button class="action-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
+                        <svg class="action-icon moon-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
+                        <svg class="action-icon sun-icon hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+                        </svg>
+                    </button>
+                    <button class="action-btn" id="history-drawer-btn" onclick="toggleAdminDrawer()" title="Verification Ledger & Settings">
+                        <svg class="action-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </button>
+                    <button class="action-btn" id="profile-drawer-btn" onclick="toggleAdminDrawer()" title="Gym Administrator Controls">
+                        <svg class="action-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard View -->
+            <section id="dashboard-view" class="content-view active">
+                <div class="dashboard-grid">
+                    <!-- Column 1: Profile Card -->
+                    <div class="card profile-card">
+                        <div class="profile-card-header">
+                            <div class="profile-meta">
+                                <h3 class="profile-name">Ahmed Mohamed</h3>
+                                <span class="profile-id">ID: 7P-2024-9981</span>
+                            </div>
+                            <span class="status-pill active" id="profile-status-pill">ACTIVE</span>
+                        </div>
+                        <div class="profile-contact-details">
+                            <div class="detail-item">
+                                <span class="detail-label">PHONE</span>
+                                <span class="detail-value">+252 61 789 4432</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">JOINED</span>
+                                <span class="detail-value">Jan 12, 2024</span>
+                            </div>
+                        </div>
+                        <div class="profile-card-accent"></div>
+                    </div>
+
+                    <!-- Column 2: Shift 1 - Maalintii -->
+                    <div class="card shift-card" id="shift-maalintii">
+                        <div class="shift-card-header">
+                            <div>
+                                <h4 class="shift-name">Maalintii Shift</h4>
+                                <span class="shift-hours">05:00 AM - 11:30 AM</span>
+                            </div>
+                        </div>
+                        <div class="shift-capacity-numbers">
+                            <div class="capacity-stat">
+                                <span class="capacity-value" id="shift-maalintii-current">142</span>
+                                <span class="capacity-label">Active</span>
+                            </div>
+                            <div class="capacity-stat align-right">
+                                <span class="capacity-value muted" id="shift-maalintii-capacity">200</span>
+                                <span class="capacity-label">Cap</span>
+                            </div>
+                        </div>
+                        <div class="progress-bar-wrapper">
+                            <div class="progress-bar-fill" id="shift-maalintii-progress" style="width: 71%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Column 3: Shift 2 - Galabtii -->
+                    <div class="card shift-card" id="shift-galabtii">
+                        <div class="shift-card-header">
+                            <div>
+                                <h4 class="shift-name">Galabtii Shift</h4>
+                                <span class="shift-hours">12:00 PM - 04:30 PM</span>
+                            </div>
+                        </div>
+                        <div class="shift-capacity-numbers">
+                            <div class="capacity-stat">
+                                <span class="capacity-value" id="shift-galabtii-current">88</span>
+                                <span class="capacity-label">Active</span>
+                            </div>
+                            <div class="capacity-stat align-right">
+                                <span class="capacity-value muted" id="shift-galabtii-capacity">150</span>
+                                <span class="capacity-label">Cap</span>
+                            </div>
+                        </div>
+                        <div class="progress-bar-wrapper">
+                            <div class="progress-bar-fill" id="shift-galabtii-progress" style="width: 58.6%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Column 4: Shift 3 - Habeenkii -->
+                    <div class="card shift-card warning" id="shift-habeenkii">
+                        <div class="shift-card-header">
+                            <div>
+                                <h4 class="shift-name">Habeenkii Shift</h4>
+                                <span class="shift-hours">05:00 PM - 10:00 PM</span>
+                            </div>
+                        </div>
+                        <div class="shift-capacity-numbers">
+                            <div class="capacity-stat">
+                                <span class="capacity-value text-red" id="shift-habeenkii-current">285</span>
+                                <span class="capacity-label">Active</span>
+                            </div>
+                            <div class="capacity-stat align-right">
+                                <span class="capacity-value muted" id="shift-habeenkii-capacity">300</span>
+                                <span class="capacity-label">Cap</span>
+                            </div>
+                        </div>
+                        <div class="progress-bar-wrapper">
+                            <div class="progress-bar-fill bg-red animate-pulse" id="shift-habeenkii-progress" style="width: 95%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subscription Packages Selection -->
+                <div class="subscription-plans-grid">
+                    <!-- Package 1: Monthly -->
+                    <div class="card plan-card">
+                        <div class="plan-icon-wrapper">
+                            <svg class="plan-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <h3 class="plan-title">Monthly Subscription</h3>
+                        <p class="plan-description">Full gym access, shower, and personal trainer guidance.</p>
+                        <div class="plan-price-wrapper">
+                            <span class="plan-currency">$</span>
+                            <span class="plan-amount">15.00</span>
+                            <span class="plan-period">/ month</span>
+                        </div>
+                        <button class="extend-btn navy-btn" onclick="openCheckout('subscription', 15.00, 'Monthly Extension')">Extend Now</button>
+                    </div>
+
+                    <!-- Package 2: Yearly -->
+                    <div class="card plan-card featured-plan">
+                        <span class="best-value-badge">BEST VALUE</span>
+                        <div class="plan-icon-wrapper">
+                            <svg class="plan-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                            </svg>
+                        </div>
+                        <h3 class="plan-title text-white">Yearly Subscription</h3>
+                        <p class="plan-description text-gray">All perks plus private locker and 2 guest passes per month.</p>
+                        <div class="plan-price-wrapper text-white">
+                            <span class="plan-currency">$</span>
+                            <span class="plan-amount text-white">120.00</span>
+                            <span class="plan-period text-gray">/ year</span>
+                        </div>
+                        <button class="extend-btn white-btn" onclick="openCheckout('subscription', 120.00, 'Yearly Extension')">Extend Now</button>
+                    </div>
+                </div>
+
+                <!-- Promotional Hero Card -->
+                <div class="card promo-card" style="background-image: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)), url('assets/deadlift_promo.png');">
+                    <div class="promo-content">
+                        <span class="promo-badge">NEW FEATURE</span>
+                        <h3 class="promo-title">Track your deadlift progress live on the app.</h3>
+                        <p class="promo-text">Sync your 7Power wearable for real-time biomechanical feedback during your sets.</p>
+                    </div>
+                </div>
+
+                <!-- Multi-column Layout Footer -->
+                <footer class="dashboard-footer">
+                    <div class="footer-col">
+                        <p class="footer-text">© 2024 7Power Gym Management. All Systems Operational.</p>
+                    </div>
+                    <div class="footer-col">
+                        <p class="footer-text">© 2024 7Power Gym Management. All Systems Operational.</p>
+                    </div>
+                    <div class="footer-col">
+                        <p class="footer-text">© 2024 7Power Gym Management. All Systems Operational.</p>
+                    </div>
+                    <div class="footer-col">
+                        <p class="footer-text">© 2024 7Power Gym Management. All Systems Operational.</p>
+                    </div>
+                </footer>
+            </section>
+
+            <!-- Store View -->
+            <section id="store-view" class="content-view">
+                <!-- Flash Sale Promo Banner -->
+                <div class="flash-sale-banner">
+                    <div class="flash-title">FLASH SALE ENDING IN</div>
+                    <div class="flash-countdown" id="store-flash-countdown">00 : 37 : 57</div>
+                </div>
+
+                <div class="store-layout-grid">
+                    <!-- Left: Product Catalog -->
+                    <div class="store-catalog">
+                        <div class="product-grid" id="product-grid-container">
+                            <!-- JS Dynamically populates items here -->
+                        </div>
+                    </div>
+
+                    <!-- Right: Sticky Cart Summary Drawer -->
+                    <div class="cart-container card">
+                        <div class="cart-header">
+                            <h3 class="cart-title">Your Tray</h3>
+                            <div class="cart-count-badge">
+                                <svg class="cart-badge-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                </svg>
+                                <span id="cart-item-count">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Cart Items List -->
+                        <div class="cart-items-list" id="cart-items-wrapper">
+                            <!-- Empty State -->
+                            <div class="cart-empty-state">
+                                <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                                <p>Tray is empty</p>
+                            </div>
+                        </div>
+
+                        <!-- Invoice Subtotals -->
+                        <div class="cart-bill-details">
+                            <div class="bill-row">
+                                <span>Subtotal</span>
+                                <span id="cart-subtotal">$0.00</span>
+                            </div>
+                            <div class="bill-row">
+                                <span>Tax (5%)</span>
+                                <span id="cart-tax">$0.00</span>
+                            </div>
+                            <div class="bill-row total-row">
+                                <span>Total</span>
+                                <span id="cart-total">$0.00</span>
+                            </div>
+                        </div>
+
+                        <button class="checkout-btn" id="checkout-action-btn" onclick="checkoutCart()" disabled>
+                            Proceed to Checkout
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Admin Panel Slider Overlay Drawer -->
+    <div class="admin-drawer" id="admin-drawer">
+        <div class="admin-drawer-overlay" onclick="toggleAdminDrawer()"></div>
+        <div class="admin-drawer-content">
+            <div class="admin-drawer-header">
+                <h3>Gym Administration Panel</h3>
+                <button class="close-drawer-btn" onclick="toggleAdminDrawer()">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="24" height="24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="admin-sections-wrapper">
+                <!-- Shift Attendance Simulators -->
+                <div class="admin-section">
+                    <h4 class="admin-section-title">Interactive Traffic Simulator</h4>
+                    <p class="admin-section-desc">Drag sliders to mock dynamic member occupancy counts in real-time.</p>
+                    
+                    <div class="simulator-control">
+                        <div class="simulator-label-row">
+                            <span class="sim-shift-name">Maalintii Shift</span>
+                            <span class="sim-shift-val" id="sim-maalintii-val">142 / 200</span>
+                        </div>
+                        <input type="range" class="sim-slider" id="sim-maalintii-slider" min="0" max="200" value="142" oninput="simulateTraffic('maalintii', this.value)">
+                    </div>
+
+                    <div class="simulator-control">
+                        <div class="simulator-label-row">
+                            <span class="sim-shift-name">Galabtii Shift</span>
+                            <span class="sim-shift-val" id="sim-galabtii-val">88 / 150</span>
+                        </div>
+                        <input type="range" class="sim-slider" id="sim-galabtii-slider" min="0" max="150" value="88" oninput="simulateTraffic('galabtii', this.value)">
+                    </div>
+
+                    <div class="simulator-control">
+                        <div class="simulator-label-row">
+                            <span class="sim-shift-name">Habeenkii Shift</span>
+                            <span class="sim-shift-val" id="sim-habeenkii-val">285 / 300</span>
+                        </div>
+                        <input type="range" class="sim-slider" id="sim-habeenkii-slider" min="0" max="300" value="285" oninput="simulateTraffic('habeenkii', this.value)">
+                    </div>
+                </div>
+
+                <!-- USSD Verification Ledger -->
+                <div class="admin-section">
+                    <h4 class="admin-section-title">Pending Payment Ledger</h4>
+                    <p class="admin-section-desc">Verify offline mobile money money transactions directly against merchant receipts.</p>
+                    
+                    <div class="ledger-list" id="admin-ledger-list">
+                        <!-- Ledger items dynamically loaded -->
+                        <div class="ledger-empty-state">
+                            No pending transaction verifications found.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Helper Tools -->
+                <div class="admin-section">
+                    <h4 class="admin-section-title">Simulation Administration</h4>
+                    <button class="reset-sim-btn" onclick="resetAppSimulation()">
+                        Reset Simulation to Default
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- USSD Offline-to-Online Billing Modal -->
+    <div class="modal-backdrop" id="checkout-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-header-icon-wrapper">
+                    <svg class="modal-header-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="modal-title">EVC Plus / USSD Mobile Checkout</h3>
+                    <p class="modal-subtitle" id="checkout-item-desc">Monthly Subscription Extension</p>
+                </div>
+                <button class="close-modal-btn" onclick="closeCheckoutModal()">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="20" height="20">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <p class="modal-instruction">
+                    Please dial the autogenerated USSD string on your registered mobile money phone to transfer funds:
+                </p>
+
+                <!-- USSD Code Block -->
+                <div class="ussd-code-block">
+                    <code class="ussd-string" id="generated-ussd-code">*880*6286807*15#</code>
+                    <button class="copy-ussd-btn" onclick="copyUSSDCode()" title="Copy USSD Code">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="18" height="18">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 002-2h2a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                        </svg>
+                        <span>Copy</span>
+                    </button>
+                </div>
+
+                <!-- Ledger Submit Form -->
+                <form class="modal-form" id="ussd-submit-form" onsubmit="submitTransaction(event)">
+                    <div class="form-group">
+                        <label for="sender-phone" class="form-label">Sender Phone Number</label>
+                        <input type="tel" id="sender-phone" class="form-input" placeholder="e.g. +252 61 XXX XXXX" required>
+                        <span class="form-help">Enter the phone number you used to send the payment.</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="transaction-ref" class="form-label">Transaction ID / Reference Number</label>
+                        <input type="text" id="transaction-ref" class="form-input" placeholder="e.g. TXN123456789" required>
+                        <span class="form-help">The unique reference ID received via SMS from the network operator.</span>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-outline" onclick="closeCheckoutModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Submit for Verification</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main JavaScript App -->
+    <script src="app.js"></script>
+</body>
+</html>
