@@ -1,3 +1,11 @@
+// Supabase Database Integration State Variables
+let dbClient = null;
+let dbConfig = {
+    url: '',
+    key: '',
+    connected: false
+};
+
 // 7Power Gym System State Management
 let state = {
     theme: 'light',
@@ -37,6 +45,7 @@ window.addEventListener('DOMContentLoaded', () => {
     initTimers();
     renderAll();
     setupTheme();
+    loadSupabaseConfig(); // Dynamically load credentials and sync
 });
 
 // Load state from local storage or set defaults
@@ -248,6 +257,7 @@ function toggleTheme() {
     saveState();
     setupTheme();
     triggerToast(`Theme switched to ${state.theme === 'light' ? 'Light Mode' : 'Dark Mode'}.`, 'info');
+    updateSupabaseSetting('theme', { theme: state.theme });
 }
 
 // Rendering orchestration
@@ -579,6 +589,7 @@ function submitTransaction(event) {
     renderAll();
 
     triggerToast('Payment submitted. Awaiting Gym Admin verification.', 'success');
+    insertSupabaseTransaction(newTx);
 }
 
 // Toggle Administration Sidebar Drawer Panel
@@ -614,6 +625,7 @@ function simulateTraffic(shiftKey, value) {
 
     saveState();
     renderDashboard();
+    updateSupabaseShift(shiftKey, parsedVal);
 }
 
 // Ledger approval checks: validates records & commits state modifications
@@ -697,6 +709,7 @@ function approveTransaction(id) {
     if (!tx || tx.status !== 'pending_verification') return;
 
     tx.status = 'approved';
+    updateSupabaseTransactionStatus(tx.id, 'approved');
 
     if (tx.type === 'subscription') {
         // Add subscription days based on amount
@@ -718,6 +731,7 @@ function approveTransaction(id) {
         state.subscription.expiry = currentExpiry + extraMs;
         
         triggerToast(`Approved. Added ${addDays} days to subscription count.`, 'success');
+        updateSupabaseSetting('subscription', state.subscription);
     } else if (tx.type === 'store') {
         // Deduct inventory items stock
         let outOfStockWarnings = [];
@@ -725,6 +739,7 @@ function approveTransaction(id) {
             const product = state.products[purchasedItem.code];
             if (product) {
                 product.stock = Math.max(0, product.stock - purchasedItem.quantity);
+                updateSupabaseProductStock(purchasedItem.code, product.stock);
                 if (product.stock === 0) {
                     outOfStockWarnings.push(product.name);
                 }
@@ -747,6 +762,7 @@ function rejectTransaction(id) {
     if (!tx || tx.status !== 'pending_verification') return;
 
     tx.status = 'rejected';
+    updateSupabaseTransactionStatus(tx.id, 'rejected');
     triggerToast('Transaction receipt rejected by admin.', 'info');
     saveState();
     renderAll();
@@ -759,6 +775,321 @@ function resetAppSimulation() {
         renderAll();
         setupTheme();
         triggerToast('Simulation reset to factory default values.', 'info');
+        if (dbConfig.connected) {
+            syncAllDefaultsToSupabase();
+        }
+    }
+}
+
+// ==========================================
+// Supabase Sync & Operations Helper Functions
+// ==========================================
+
+function loadSupabaseConfig() {
+    const savedUrl = localStorage.getItem('7power_supabase_url');
+    const savedKey = localStorage.getItem('7power_supabase_key');
+    if (savedUrl && savedKey) {
+        dbConfig.url = savedUrl;
+        dbConfig.key = savedKey;
+        
+        // Populate fields in Admin Drawer if they exist
+        const urlInput = document.getElementById('db-url');
+        const keyInput = document.getElementById('db-key');
+        if (urlInput) urlInput.value = savedUrl;
+        if (keyInput) keyInput.value = savedKey;
+        
+        initSupabase(savedUrl, savedKey);
+    }
+}
+
+async function initSupabase(url, key, verbose = false) {
+    try {
+        if (typeof supabase === 'undefined') {
+            console.error('Supabase library not loaded yet.');
+            updateDbStatus(false);
+            return;
+        }
+        
+        dbClient = supabase.createClient(url, key);
+        
+        // Test query to confirm credentials and connection
+        const { data, error } = await dbClient.from('gym_shifts').select('key').limit(1);
+        if (error) throw error;
+        
+        dbConfig.url = url;
+        dbConfig.key = key;
+        dbConfig.connected = true;
+        
+        localStorage.setItem('7power_supabase_url', url);
+        localStorage.setItem('7power_supabase_key', key);
+        
+        updateDbStatus(true);
+        if (verbose) {
+            triggerToast('Connected to Supabase Database successfully!', 'success');
+        }
+        
+        await syncFromSupabase();
+    } catch (e) {
+        console.error('Supabase initialization failed:', e);
+        dbConfig.connected = false;
+        dbClient = null;
+        updateDbStatus(false);
+        if (verbose) {
+            triggerToast('Failed to connect to Supabase. Check credentials/tables.', 'error');
+        }
+    }
+}
+
+function updateDbStatus(isConnected) {
+    const statusBadge = document.getElementById('db-status-badge');
+    if (statusBadge) {
+        if (isConnected) {
+            statusBadge.innerText = 'CONNECTED';
+            statusBadge.className = 'status-pill active';
+        } else {
+            statusBadge.innerText = 'OFFLINE';
+            statusBadge.className = 'status-pill expired';
+        }
+    }
+}
+
+async function connectSupabase(event) {
+    if (event) event.preventDefault();
+    const url = document.getElementById('db-url').value.trim();
+    const key = document.getElementById('db-key').value.trim();
+    
+    if (!url || !key) {
+        triggerToast('Please provide both URL and Anon Key.', 'error');
+        return;
+    }
+    
+    triggerToast('Connecting to Supabase database...', 'info');
+    await initSupabase(url, key, true);
+}
+
+function disconnectSupabase() {
+    localStorage.removeItem('7power_supabase_url');
+    localStorage.removeItem('7power_supabase_key');
+    
+    const urlInput = document.getElementById('db-url');
+    const keyInput = document.getElementById('db-key');
+    if (urlInput) urlInput.value = '';
+    if (keyInput) keyInput.value = '';
+    
+    dbClient = null;
+    dbConfig.connected = false;
+    dbConfig.url = '';
+    dbConfig.key = '';
+    
+    updateDbStatus(false);
+    triggerToast('Disconnected. Reverted back to Local Storage.', 'info');
+    
+    loadStateFromStorage();
+    renderAll();
+}
+
+async function syncFromSupabase() {
+    if (!dbConfig.connected || !dbClient) return;
+    
+    try {
+        // 1. Fetch shifts
+        const { data: shiftsData, error: shiftsError } = await dbClient
+            .from('gym_shifts')
+            .select('*');
+        if (shiftsError) throw shiftsError;
+        
+        if (shiftsData && shiftsData.length > 0) {
+            shiftsData.forEach(row => {
+                if (state.shifts[row.key]) {
+                    state.shifts[row.key].current = row.current;
+                    state.shifts[row.key].capacity = row.capacity;
+                    state.shifts[row.key].label = row.label;
+                    state.shifts[row.key].hours = row.hours;
+                }
+            });
+        }
+        
+        // 2. Fetch products
+        const { data: productsData, error: productsError } = await dbClient
+            .from('gym_products')
+            .select('*');
+        if (productsError) throw productsError;
+        
+        if (productsData && productsData.length > 0) {
+            productsData.forEach(row => {
+                if (state.products[row.code]) {
+                    state.products[row.code].name = row.name;
+                    state.products[row.code].price = parseFloat(row.price);
+                    state.products[row.code].category = row.category;
+                    state.products[row.code].stock = row.stock;
+                    state.products[row.code].desc = row.description || row.desc;
+                    state.products[row.code].image = row.image;
+                }
+            });
+        }
+        
+        // 3. Fetch ledger
+        const { data: ledgerData, error: ledgerError } = await dbClient
+            .from('gym_ledger')
+            .select('*')
+            .order('created_at', { ascending: false });
+        if (ledgerError) throw ledgerError;
+        
+        if (ledgerData) {
+            state.ledger = ledgerData.map(row => ({
+                id: row.id,
+                type: row.type,
+                amount: parseFloat(row.amount),
+                desc: row.description,
+                senderPhone: row.sender_phone,
+                refNo: row.ref_no,
+                status: row.status,
+                items: typeof row.items === 'string' ? JSON.parse(row.items) : row.items,
+                timestamp: row.created_at
+            }));
+        }
+        
+        // 4. Fetch settings
+        const { data: settingsData, error: settingsError } = await dbClient
+            .from('gym_settings')
+            .select('*');
+        if (settingsError) throw settingsError;
+        
+        if (settingsData) {
+            settingsData.forEach(row => {
+                if (row.key === 'theme') {
+                    state.theme = row.value.theme;
+                } else if (row.key === 'subscription') {
+                    state.subscription = row.value;
+                } else if (row.key === 'flashSaleSeconds') {
+                    state.flashSaleSeconds = row.value.flashSaleSeconds;
+                }
+            });
+        }
+        
+        renderAll();
+        setupTheme();
+        
+    } catch (e) {
+        console.error('Error syncing from Supabase:', e);
+        triggerToast('Failed to fetch some data from Supabase.', 'error');
+    }
+}
+
+async function updateSupabaseSetting(key, value) {
+    if (!dbConfig.connected || !dbClient) return;
+    try {
+        const { error } = await dbClient
+            .from('gym_settings')
+            .upsert({ key: key, value: value });
+        if (error) throw error;
+    } catch (e) {
+        console.error(`Error updating setting ${key} in Supabase:`, e);
+    }
+}
+
+async function updateSupabaseShift(key, current) {
+    if (!dbConfig.connected || !dbClient) return;
+    try {
+        const { error } = await dbClient
+            .from('gym_shifts')
+            .update({ current: current })
+            .eq('key', key);
+        if (error) throw error;
+    } catch (e) {
+        console.error(`Error updating shift ${key} in Supabase:`, e);
+    }
+}
+
+async function updateSupabaseProductStock(code, newStock) {
+    if (!dbConfig.connected || !dbClient) return;
+    try {
+        const { error } = await dbClient
+            .from('gym_products')
+            .update({ stock: newStock })
+            .eq('code', code);
+        if (error) throw error;
+    } catch (e) {
+        console.error(`Error updating product stock for ${code} in Supabase:`, e);
+    }
+}
+
+async function insertSupabaseTransaction(tx) {
+    if (!dbConfig.connected || !dbClient) return;
+    try {
+        const { error } = await dbClient
+            .from('gym_ledger')
+            .insert({
+                id: tx.id,
+                type: tx.type,
+                amount: tx.amount,
+                description: tx.desc,
+                sender_phone: tx.senderPhone,
+                ref_no: tx.refNo,
+                status: tx.status,
+                items: tx.items,
+                created_at: tx.timestamp
+            });
+        if (error) throw error;
+    } catch (e) {
+        console.error(`Error inserting transaction ${tx.id} in Supabase:`, e);
+    }
+}
+
+async function updateSupabaseTransactionStatus(txId, status) {
+    if (!dbConfig.connected || !dbClient) return;
+    try {
+        const { error } = await dbClient
+            .from('gym_ledger')
+            .update({ status: status })
+            .eq('id', txId);
+        if (error) throw error;
+    } catch (e) {
+        console.error(`Error updating transaction status for ${txId} in Supabase:`, e);
+    }
+}
+
+async function syncAllDefaultsToSupabase() {
+    if (!dbConfig.connected || !dbClient) return;
+    try {
+        // 1. Reset shifts
+        for (const key of Object.keys(state.shifts)) {
+            const shift = state.shifts[key];
+            await dbClient.from('gym_shifts').upsert({
+                key: key,
+                label: shift.label,
+                current: shift.current,
+                capacity: shift.capacity,
+                hours: shift.hours
+            });
+        }
+        
+        // 2. Reset products
+        for (const code of Object.keys(state.products)) {
+            const product = state.products[code];
+            await dbClient.from('gym_products').upsert({
+                code: code,
+                name: product.name,
+                price: product.price,
+                category: product.category,
+                stock: product.stock,
+                description: product.desc,
+                image: product.image
+            });
+        }
+        
+        // 3. Clear ledger
+        await dbClient.from('gym_ledger').delete().neq('id', 'dummy');
+        
+        // 4. Settings
+        await updateSupabaseSetting('theme', { theme: state.theme });
+        await updateSupabaseSetting('subscription', state.subscription);
+        await updateSupabaseSetting('flashSaleSeconds', { flashSaleSeconds: state.flashSaleSeconds });
+        
+        triggerToast('Supabase Database reset successfully.', 'success');
+    } catch (e) {
+        console.error('Error seeding defaults to Supabase:', e);
+        triggerToast('Failed to reset all database default values.', 'error');
     }
 }
 

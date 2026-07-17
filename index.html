@@ -369,6 +369,30 @@
             </div>
             
             <div class="admin-sections-wrapper">
+                <!-- Supabase Integration Section -->
+                <div class="admin-section">
+                    <div class="admin-section-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <h4 class="admin-section-title" style="margin-bottom: 0;">Supabase Database</h4>
+                        <span id="db-status-badge" class="status-pill expired">OFFLINE</span>
+                    </div>
+                    <p class="admin-section-desc">Connect to a live Supabase database to persist and sync all gym details.</p>
+                    
+                    <form id="supabase-config-form" onsubmit="connectSupabase(event)" style="margin-top: 12px; display: flex; flex-direction: column; gap: 10px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="db-url" class="form-label" style="font-size: 11px;">Supabase Project URL</label>
+                            <input type="url" id="db-url" class="form-input" style="padding: 8px; font-size: 13px;" placeholder="https://your-project.supabase.co" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="db-key" class="form-label" style="font-size: 11px;">Supabase Anon Key</label>
+                            <input type="password" id="db-key" class="form-input" style="padding: 8px; font-size: 13px;" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." required>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-top: 6px;">
+                            <button type="submit" class="btn btn-primary" style="flex: 1; padding: 10px; font-size: 13px;">Connect</button>
+                            <button type="button" class="btn btn-outline" onclick="disconnectSupabase()" style="flex: 1; padding: 10px; font-size: 13px;">Disconnect</button>
+                        </div>
+                    </form>
+                </div>
+
                 <!-- Shift Attendance Simulators -->
                 <div class="admin-section">
                     <h4 class="admin-section-title">Interactive Traffic Simulator</h4>
@@ -482,6 +506,8 @@
         </div>
     </div>
 
+    <!-- Supabase CDN Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Main JavaScript App -->
     <script src="app.js"></script>
 </body>
